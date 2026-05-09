@@ -1,0 +1,50 @@
+name: Generate Game Article
+
+on:
+  workflow_dispatch:
+    inputs:
+      game_name:
+        description: "ゲーム名"
+        required: true
+        type: string
+      article_type:
+        description: "記事タイプ"
+        required: true
+        default: auto
+        type: choice
+        options:
+          - auto
+          - pre_release
+          - post_release
+      note_url:
+        description: "note URL（任意）"
+        required: false
+        type: string
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Generate note and X drafts
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
+          RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
+          INPUT_GAME_NAME: ${{ github.event.inputs.game_name }}
+          INPUT_ARTICLE_TYPE: ${{ github.event.inputs.article_type }}
+          INPUT_NOTE_URL: ${{ github.event.inputs.note_url }}
+        run: node scripts/generate-game-article.mjs
+
+      - name: Upload outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-article-${{ github.run_id }}
+          path: outputs/
