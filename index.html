@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>ゲーム紹介記事生成ツール</title>
+  <!-- 既存 index.html を上書き更新して運用 -->
+  <style>
+    :root {
+      --bg: #f7f8fb;
+      --card: #ffffff;
+      --text: #1a1d29;
+      --sub: #5a6072;
+      --accent: #3b5bdb;
+      --border: #dfe3ee;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 12px;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      display: grid;
+      gap: 12px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    h1 { font-size: 1.2rem; margin: 0 0 6px; }
+    p.lead { margin: 0; color: var(--sub); font-size: 0.92rem; }
+    .field { margin-top: 10px; }
+    label { font-weight: 700; font-size: 0.92rem; display: block; margin-bottom: 6px; }
+    input, textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 16px;
+      background: #fff;
+    }
+    textarea { min-height: 92px; resize: vertical; }
+    button {
+      appearance: none;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .primary { width: 100%; background: var(--accent); color: #fff; margin-top: 12px; }
+    .subbtn { background: #eef2ff; color: #2b46c4; margin-top: 8px; width: 100%; }
+    .output {
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.88rem;
+      background: #fbfcff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      margin-top: 8px;
+    }
+    .small { color: var(--sub); font-size: 0.85rem; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="card">
+      <h1>ゲーム紹介記事生成ツール（note / X）</h1>
+      <p class="lead">iPhoneで入力しやすいシンプル設計。手入力した情報から、note用MarkdownとX投稿文3パターンを生成します。</p>
+
+      <div class="field"><label for="title">ゲーム名</label><input id="title" placeholder="例：◯◯クエスト" /></div>
+      <div class="field"><label for="releaseDate">発売日</label><input id="releaseDate" type="date" /></div>
+      <div class="field"><label for="platforms">対応機種</label><input id="platforms" placeholder="例：Nintendo Switch / PS5 / Steam" /></div>
+      <div class="field"><label for="genre">ジャンル</label><input id="genre" placeholder="例：アクションRPG" /></div>
+      <div class="field"><label for="similarGames">似ている有名ゲーム</label><input id="similarGames" placeholder="例：ゼルダの伝説 / モンハン" /></div>
+      <div class="field"><label for="officialMemo">公式情報メモ</label><textarea id="officialMemo" placeholder="公式サイト・公式SNS・ストア説明など"></textarea></div>
+      <div class="field"><label for="reviewMemo">レビュー傾向メモ</label><textarea id="reviewMemo" placeholder="公開レビューで見られる評価傾向を要約"></textarea></div>
+      <div class="field"><label for="affiliate">楽天アフィリエイトリンク</label><input id="affiliate" placeholder="https://..." /></div>
+
+      <button id="generateBtn" class="primary">記事とX投稿文を生成</button>
+      <p class="small">※ PR表記を含みます。発売日で「予約前チェック記事 / 評判まとめ記事」を自動判定します。</p>
+    </section>
+
+    <section class="card">
+      <h2>note用Markdown</h2>
+      <button id="copyMd" class="subbtn">Markdownをコピー</button>
+      <div id="mdOut" class="output"></div>
+    </section>
+
+    <section class="card">
+      <h2>X投稿文（3パターン）</h2>
+      <button id="copyX" class="subbtn">X投稿文をコピー</button>
+      <div id="xOut" class="output"></div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function fmtDate(iso) {
+      if (!iso) return "（未入力）";
+      const d = new Date(iso + "T00:00:00");
+      if (Number.isNaN(d.getTime())) return iso;
+      return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+    }
+
+    function buildMarkdown(data) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const release = data.releaseDate ? new Date(data.releaseDate + "T00:00:00") : null;
+      const isPreRelease = release ? release > today : true;
+      const articleType = isPreRelease ? "予約前チェック記事" : "評判まとめ記事";
+      const sectionTitle = isPreRelease ? "発売前に押さえたいポイント" : "公開レビューの評判まとめ";
+
+      return `# 【PR】${data.title || "ゲーム名未入力"} ${articleType}
+
+> この記事にはプロモーション（PR）が含まれます。
+
+## 基本情報
+- ゲーム名：${data.title || "（未入力）"}
+- 発売日：${fmtDate(data.releaseDate)}
+- 対応機種：${data.platforms || "（未入力）"}
+- ジャンル：${data.genre || "（未入力）"}
+- 似ている有名ゲーム：${data.similarGames || "（未入力）"}
+
+## 記事の整理方針
+本記事は**公式情報・ストア情報・公開レビュー傾向をもとに整理**しています。
+
+## ${sectionTitle}
+### 公式情報メモ
+${data.officialMemo || "（メモ未入力）"}
+
+### レビュー傾向メモ
+${data.reviewMemo || "（メモ未入力）"}
+
+## どんなゲームが好きな人に合いそう？
+${data.similarGames ? `${data.similarGames}のようなゲーム性が好きな人は、注目候補としてチェックしやすいタイトルです。` : "近いタイプの有名ゲームを入力すると、読者向けの比較軸を作れます。"}
+
+## 買うべき人
+- 発売日・対応機種・ジャンルを確認して、興味がはっきりしている人
+- 公式情報やストア説明を見て、期待ポイントが一致している人
+
+## 少し様子見でもいい人
+- 追加レビューやアップデート情報が出てから判断したい人
+- 価格推移やセール時期も含めて比較したい人
+
+## 楽天で購入・予約する（PR）
+${data.affiliate || "（未入力）"}
+
+## まとめ
+${data.title || "本作"}が気になっている人向けに、情報を短時間で確認できるように整理しました。気になる点は公式情報とストア情報をあわせて確認してみてください。`;
+    }
+
+    function buildXPosts(data) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const release = data.releaseDate ? new Date(data.releaseDate + "T00:00:00") : null;
+      const isPreRelease = release ? release > today : true;
+      const label = isPreRelease ? "予約前チェック" : "評判まとめ";
+      const game = data.title || "ゲーム名未入力";
+      const date = fmtDate(data.releaseDate);
+      const notePlaceholder = "（note公開後にURLを入れる）";
+
+      return `①【PR】${game}の${label}をnote用に整理。
+発売日：${date}
+公式情報・ストア情報・公開レビュー傾向をもとに要点を確認できます。
+${notePlaceholder}
+
+②【PR】${game}が気になる方向け。
+対応機種：${data.platforms || "（未入力）"}
+ジャンル：${data.genre || "（未入力）"}
+公式情報・ストア情報・公開レビュー傾向をもとに整理した記事です。
+${notePlaceholder}
+
+③【PR】${game}情報を短くチェックしたい人へ。
+「${label}」として、判断に必要なポイントを1本にまとめました。
+公式情報・ストア情報・公開レビュー傾向ベースで整理。
+${notePlaceholder}`;
+    }
+
+    function collectData() {
+      return {
+        title: $("title").value.trim(),
+        releaseDate: $("releaseDate").value,
+        platforms: $("platforms").value.trim(),
+        genre: $("genre").value.trim(),
+        similarGames: $("similarGames").value.trim(),
+        officialMemo: $("officialMemo").value.trim(),
+        reviewMemo: $("reviewMemo").value.trim(),
+        affiliate: $("affiliate").value.trim()
+      };
+    }
+
+    async function copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        alert("コピーしました");
+      } catch (_) {
+        alert("コピーできませんでした。手動で選択してコピーしてください。");
+      }
+    }
+
+    let latestMd = "";
+    let latestX = "";
+
+    $("generateBtn").addEventListener("click", () => {
+      const data = collectData();
+      latestMd = buildMarkdown(data);
+      latestX = buildXPosts(data);
+      $("mdOut").textContent = latestMd;
+      $("xOut").textContent = latestX;
+    });
+
+    $("copyMd").addEventListener("click", () => copyText(latestMd || "先に生成してください"));
+    $("copyX").addEventListener("click", () => copyText(latestX || "先に生成してください"));
+  </script>
+</body>
+</html>
