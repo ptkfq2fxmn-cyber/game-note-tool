@@ -102,6 +102,24 @@ function resolveArticleType(requestType, salesDate) {
   return parsed.getTime() > Date.now() ? "pre_release" : "post_release";
 }
 
+function extractOutputText(data) {
+  if (typeof data.output_text === "string" && data.output_text.trim()) {
+    return data.output_text.trim();
+  }
+
+  const texts = [];
+
+  for (const item of data.output || []) {
+    for (const content of item.content || []) {
+      if (typeof content.text === "string" && content.text.trim()) {
+        texts.push(content.text);
+      }
+    }
+  }
+
+  return texts.join("\n").trim();
+}
+
 async function generateByOpenAI(context) {
   const noteUrlForX = context.noteUrl || "（note公開後にURLを入れる）";
   const systemPrompt = `あなたは日本語の編集者です。指定フォーマットに厳密に従って出力してください。\n
@@ -135,10 +153,10 @@ async function generateByOpenAI(context) {
   }
 
   const data = await res.json();
-  const outputText = data.output_text;
+  const outputText = extractOutputText(data);
 
   if (!outputText) {
-    throw new Error("OpenAIレスポンスに output_text がありません。");
+    throw new Error("OpenAIレスポンスからテキストを取得できませんでした。");
   }
 
   let parsed;
