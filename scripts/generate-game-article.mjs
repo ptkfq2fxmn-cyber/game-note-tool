@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-const requiredEnv = ["OPENAI_API_KEY", "RAKUTEN_APP_ID", "RAKUTEN_AFFILIATE_ID"];
+const requiredEnv = ["OPENAI_API_KEY", "RAKUTEN_APP_ID", "RAKUTEN_ACCESS_KEY", "RAKUTEN_AFFILIATE_ID"];
 for (const key of requiredEnv) {
   if (!process.env[key]) {
     throw new Error(`必須の環境変数 ${key} が設定されていません。GitHub Secrets を確認してください。`);
@@ -21,6 +21,7 @@ if (!["auto", "pre_release", "post_release"].includes(requestedArticleType)) {
 }
 
 const rakutenAppId = process.env.RAKUTEN_APP_ID;
+const rakutenAccessKey = process.env.RAKUTEN_ACCESS_KEY;
 const rakutenAffiliateId = process.env.RAKUTEN_AFFILIATE_ID;
 const openAiApiKey = process.env.OPENAI_API_KEY;
 
@@ -57,9 +58,11 @@ function normalizeRakutenItem(item) {
 }
 
 async function fetchRakutenGame(keyword) {
-  const endpoint = new URL("https://app.rakuten.co.jp/services/api/BooksGame/Search/20170404");
+  const endpoint = new URL("https://openapi.rakuten.co.jp/services/api/BooksGame/Search/20170404");
   endpoint.searchParams.set("format", "json");
   endpoint.searchParams.set("applicationId", rakutenAppId);
+  endpoint.searchParams.set("accessKey", rakutenAccessKey);
+  endpoint.searchParams.set("formatVersion", "2");
   endpoint.searchParams.set("title", keyword);
   endpoint.searchParams.set("hits", "5");
   endpoint.searchParams.set("affiliateId", rakutenAffiliateId);
@@ -73,7 +76,12 @@ async function fetchRakutenGame(keyword) {
   }
 
   const json = await res.json();
-  const item = Array.isArray(json.Items) && json.Items.length > 0 ? json.Items[0].Item : null;
+  const item =
+    Array.isArray(json.items) && json.items.length > 0
+      ? json.items[0]
+      : Array.isArray(json.Items) && json.Items.length > 0
+        ? json.Items[0].Item
+        : null;
   return {
     raw: json,
     item: normalizeRakutenItem(item),
