@@ -69,7 +69,13 @@ async function fetchRakutenGame(keyword) {
 
   console.log(`楽天APIに問い合わせ: ${endpoint.toString()}`);
 
-  const res = await fetch(endpoint, { headers: { "User-Agent": "game-note-tool/2.0" } });
+  const res = await fetch(endpoint, {
+    headers: {
+      "User-Agent": "game-note-tool/2.0",
+      "Origin": "https://ptkfq2fxmn-cyber.github.io",
+      "Referer": "https://ptkfq2fxmn-cyber.github.io/game-note-tool/",
+    },
+  });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`楽天APIエラー: ${res.status} ${res.statusText} ${text}`);
