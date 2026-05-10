@@ -134,20 +134,31 @@ async function fetchRakutenGame(keyword) {
 
   logRakutenItems([]);
 
-  const itemSearchEndpoint = new URL("https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601");
-  itemSearchEndpoint.searchParams.set("format", "json");
+  const itemSearchEndpoint = new URL("https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401");
   itemSearchEndpoint.searchParams.set("applicationId", rakutenAppId);
+  itemSearchEndpoint.searchParams.set("accessKey", rakutenAccessKey);
   itemSearchEndpoint.searchParams.set("keyword", keyword);
+  itemSearchEndpoint.searchParams.set("format", "json");
+  itemSearchEndpoint.searchParams.set("formatVersion", "2");
   itemSearchEndpoint.searchParams.set("hits", "5");
   itemSearchEndpoint.searchParams.set("affiliateId", rakutenAffiliateId);
 
-  console.log(`楽天市場APIに問い合わせ: ${itemSearchEndpoint.toString()}`);
+  const debugUrl = new URL(itemSearchEndpoint.toString());
+  debugUrl.searchParams.set("accessKey", "***");
+  debugUrl.searchParams.set("affiliateId", "***");
+
+  console.log(`RAKUTEN_APP_ID exists: ${Boolean(rakutenAppId)}`);
+  console.log(`RAKUTEN_APP_ID length: ${rakutenAppId?.length ?? 0}`);
+  console.log(`RAKUTEN_ACCESS_KEY exists: ${Boolean(rakutenAccessKey)}`);
+  console.log(`RAKUTEN_ACCESS_KEY length: ${rakutenAccessKey?.length ?? 0}`);
+  console.log(`楽天市場APIに問い合わせ: ${debugUrl.toString()}`);
 
   const itemRes = await fetch(itemSearchEndpoint, {
     headers: {
       "User-Agent": "game-note-tool/2.0",
       "Origin": "https://ptkfq2fxmn-cyber.github.io",
       "Referer": "https://ptkfq2fxmn-cyber.github.io/game-note-tool/",
+      "accessKey": rakutenAccessKey,
     },
   });
 
